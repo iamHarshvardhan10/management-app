@@ -5,7 +5,9 @@ import Profile from "../models/profileDetails.model.js";
 import jwt from 'jsonwebtoken'
 import { OAuth2Client } from 'google-auth-library'
 
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID)
+
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
 
 
 export const createAccount = async (req, res) => {
@@ -18,6 +20,9 @@ export const createAccount = async (req, res) => {
                 success: false
             });
         }
+
+        console.log(email)
+        console.log(password)
 
         const checkEmailPresent = await User.findOne({ email });
 
@@ -130,62 +135,83 @@ export const login = async (req, res) => {
 }
 
 
-// GOOGLE ACCOUNT LOGIN
-export const googleLogin = async (req, res) => {
-    try {
-        const { token } = req.body;
 
-        if (!token) {
+export const googleAuth = async (req, res) => {
+    try {
+
+        const { credential } = req.body;
+
+        if (!credential) {
             return res.status(400).json({
-                message: "Google token is required",
+                success: false,
+                message: "Credential missing"
             });
         }
 
         const ticket = await client.verifyIdToken({
-            idToken: token,
+            idToken: credential,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
 
         const payload = ticket.getPayload();
 
-        const { email, picture, sub } = payload;
+        const {
+            sub,
+            email,
+            name,
+            picture
+        } = payload;
 
         let user = await User.findOne({ email });
 
-
         if (!user) {
+
+            const profileDetails = await Profile.create({});
+
             user = await User.create({
+                name,
                 email,
                 googleId: sub,
                 profilePic: picture,
                 provider: "google",
+                userId: uuidv4(),
+                isVerified: true,
+                profileDetails: profileDetails._id
             });
+
         }
 
-
-        if (user.provider === "local") {
-            user.googleId = sub;
-            user.provider = "google";
-            user.profilePic = user.profilePic || picture;
-            await user.save();
-        }
-
-        const jwtToken = jwt.sign(
-            { id: user._id },
+        const token = jwt.sign(
+            {
+                id: user._id
+            },
             process.env.JWT_SECRET,
-            { expiresIn: "7d" }
+            {
+                expiresIn: "7d"
+            }
         );
 
+        res.cookie("token", token, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
         return res.status(200).json({
-            message: "Login successful",
-            token: jwtToken,
-            user,
+            success: true,
+            message: "Google Login Successful",
+            token,
+            user
         });
 
     } catch (error) {
-        console.error(error);
+
+        console.log(error);
+
         return res.status(500).json({
-            message: "Google login failed",
+            success: false,
+            message: error.message
         });
     }
 };

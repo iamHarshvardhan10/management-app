@@ -14,8 +14,6 @@ const app = express()
 const PORT = 9000
 
 
-app.use(express.json())
-app.use(cookieParser())
 
 app.use(
     cors({
@@ -24,6 +22,8 @@ app.use(
     })
 );
 
+app.use(express.json())
+app.use(cookieParser())
 app.use(
     fileUpload({
         useTempFiles: true,
@@ -46,7 +46,7 @@ app.use('/api/v1/leaves', LeavesRouter)
 
 
 
-app.listen(PORT, () => {
+app.listen(process.env.PORT, () => {
     console.log(`server is running on ${process.env.PORT}`)
     dabaseConnection()
 })

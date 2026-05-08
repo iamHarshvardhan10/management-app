@@ -14,6 +14,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 
+const base_url = import.meta.env.VITE_API_URL
+console.log(base_url)
+
 export function SignupForm({ className, ...props }) {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -34,7 +37,7 @@ export function SignupForm({ className, ...props }) {
 
     try {
       const response = await fetch(
-        "http://localhost:9000/api/v1/auth/create-account",
+        `${base_url}/api/v1/auth/create-account`,
         {
           method: "POST",
           headers: {
